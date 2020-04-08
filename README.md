@@ -1,6 +1,6 @@
-# Vue Autosaving Forms With Firestore
+# Autosaving Forms with Vue & Firestore
 
-Autosaving Forms with Vue & Firestore. 
+Watch the full [Vue Firestore Autosaving Forms](https://fireship.io/lessons/vue-autosaving-forms-with-firestore/) tutorial.
 
 ## Project setup from this repo
 
