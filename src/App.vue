@@ -1,16 +1,18 @@
 <template>
   <div id="app">
-    <div class="notification is-success" v-if="state === 'synced'">Form is synced with Firestore</div>
-    <div
-      class="notification is-link"
-      v-else-if="state === 'modified'"
-    >From data changed, will sync with Firebase</div>
-    <div
-      class="notification is-warning"
-      v-else-if="state === 'revoked'"
-    >From data and Firebase revoked to original data</div>
-    <div class="notification is-danger" v-else-if="state === 'error'">Failed to save to Firestore</div>
-    <div class="notification is-info" v-else>Waiting for changes...</div>
+    <div class="notification is-success" v-if="state === 'synced'">
+      Form is synced with Firestore
+    </div>
+    <div class="notification is-link" v-else-if="state === 'modified'">
+      From data changed, will sync with Firebase
+    </div>
+    <div class="notification is-warning" v-else-if="state === 'revoked'">
+      From data and Firebase revoked to original data
+    </div>
+    <div class="notification is-danger" v-else-if="state === 'error'">
+      Failed to save to Firestore. {{ errorMessage }}
+    </div>
+    <div class="notification is-info" v-else-if="state === 'loading'">Loading...</div>
 
     <hr />
     <div class="columns">
@@ -35,7 +37,7 @@
 
     <hr />
 
-    <form @submit.prevent="saveForm">
+    <form @submit.prevent="updateFirebase" @input="fieldUpdate">
       <div class="field is-horizontal">
         <div class="field-label is-normal">
           <label class="label">Contact</label>
@@ -48,7 +50,7 @@
                 type="text"
                 name="name"
                 v-model="formData.name"
-                @input="fieldUpdate"
+
               />
               <span class="icon is-small is-left">
                 <i class="fas fa-user"></i>
@@ -62,7 +64,7 @@
                 type="email"
                 name="email"
                 v-model="formData.email"
-                @input="fieldUpdate"
+
               />
               <span class="icon is-small is-left">
                 <i class="fas fa-envelope"></i>
@@ -85,9 +87,9 @@
                 <input
                   class="input"
                   type="tel"
-                  name="phonenumber"
-                  v-model="formData.phonenumber"
-                  @input="fieldUpdate"
+                  name="phone"
+                  v-model="formData.phone"
+  
                 />
               </p>
             </div>
@@ -96,8 +98,10 @@
         </div>
       </div>
       <hr />
-      Vue Form State: {{ state == '' ? "waiting for changes" : state }}
+      Vue Form State: {{ state == '' ? 'waiting for changes' : state }}
       <hr />
+
+      <button class="button is-success" type="submit" v-if="state === 'modified'">Save Changes</button>
     </form>
     <button class="button is-warning is-rounded" @click="revokeData">
       <span class="icon">
@@ -109,58 +113,74 @@
 </template>
 
 <script lang="ts">
-import { db } from "./firebase";
-import { debounce } from "debounce";
+import { db } from './firebase';
+import { debounce } from 'debounce';
+import Vue from 'vue';
 
-export default {
+const documentPath = 'contacts/jeff';
+
+export default Vue.extend( {
   data() {
     return {
-      state: "",
-      originalData: {},
+      state: 'loading', // synced, modified, revoked, error
       formData: {},
-      firebaseData: {}
+      originalData: null,
+      firebaseData: null,
+      errorMessage: ''
     };
   },
 
   firestore() {
     return {
-      firebaseData: db.doc("documents/contact")
+      firebaseData: db.doc(documentPath),
     };
   },
 
   methods: {
-    updateFirebase: debounce(async function() {
+    async updateFirebase() {
+      console.log('called')
       try {
-        this.state = "synced";
-        await db.doc("documents/contact").set(this.formData);
+        await db.doc(documentPath).set(this.formData);
+        this.state = 'synced';
       } catch (error) {
-        this.state = "error";
+        this.errorMessage = JSON.stringify(error)
+        this.state = 'error';
+        this.state = ''
       }
-    }, 1500),
-
-    revokeData() {
-      const _that = this as any;
-      this.formData = (_that as any).originalData;
-      this.updateFirebase();
-      this.state = "revoked";
     },
 
-    getDataOnce: async function() {
-      const data = await db.doc("documents/contact").get();
-      return data.data();
+    revokeData() {
+      this.formData = { ...this.originalData };
+      this.updateFirebase();
+      this.state = 'revoked';
     },
 
     fieldUpdate() {
-      this.state = "modified";
-      this.updateFirebase();
+      this.state = 'modified';
+      this.debouncedUpdate();
     },
+
+    
+    debouncedUpdate: debounce(function() {
+      this.updateFirebase()
+    }, 1500)
   },
 
-  created: async function() {
-    (this as any).originalData = await (this as any).getDataOnce();
-    (this as any).formData = await (this as any).getDataOnce();
-  }
-};
+  created: async function () {
+    const docRef = db.doc(documentPath);
+
+    let data = (await docRef.get() ).data();
+
+    if (!data) {
+      data = { name: '', phone: '', email: '' }
+      docRef.set(data)
+    }
+
+    this.originalData = { ...data }; // Create a new object reference for original dataa
+    this.formData = data;
+    this.state = 'synced'
+  },
+});
 </script>
 
 <style>
@@ -171,7 +191,7 @@ h3 {
 }
 
 #app {
-  font-family: "sofia-pro", sans-serif;
+  font-family: 'sofia-pro', sans-serif;
   text-align: center;
   padding: 10vh 15vw;
 }
