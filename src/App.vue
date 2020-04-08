@@ -119,7 +119,7 @@ import Vue from 'vue';
 
 const documentPath = 'contacts/jeff';
 
-export default Vue.extend( {
+export default {
   data() {
     return {
       state: 'loading', // synced, modified, revoked, error
@@ -180,7 +180,7 @@ export default Vue.extend( {
     this.formData = data;
     this.state = 'synced'
   },
-});
+};
 </script>
 
 <style>
