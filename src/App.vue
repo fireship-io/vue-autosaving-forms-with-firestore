@@ -16,11 +16,11 @@
 
     <hr />
     <div class="columns">
-      <div class="column">
+      <!-- <div class="column">
         <h3>Original Data</h3>
         <br />
         {{ originalData }}
-      </div>
+      </div> -->
     </div>
     <div class="columns">
       <div class="column">
@@ -98,7 +98,7 @@
         </div>
       </div>
       <hr />
-      Vue Form State: {{ state }}
+      Vue Form State: {{ state == '' ? 'waiting for changes' : state }}
       <hr />
 
       <button class="button is-success" type="submit" v-if="state === 'modified'">Save Changes</button>
@@ -112,9 +112,10 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
 import { db } from './firebase';
 import { debounce } from 'debounce';
+import Vue from 'vue';
 
 const documentPath = 'contacts/jeff';
 
@@ -137,12 +138,14 @@ export default {
 
   methods: {
     async updateFirebase() {
+      console.log('called')
       try {
         await db.doc(documentPath).set(this.formData);
         this.state = 'synced';
       } catch (error) {
         this.errorMessage = JSON.stringify(error)
         this.state = 'error';
+        this.state = ''
       }
     },
 
