@@ -145,7 +145,6 @@ export default {
       } catch (error) {
         this.errorMessage = JSON.stringify(error)
         this.state = 'error';
-        this.state = ''
       }
     },
 
